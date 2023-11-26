@@ -1,0 +1,18 @@
+from typing import List, Optional
+{% for import in imports %}
+{{ import }}
+{% endfor %}
+
+class {{ class_name }}:
+{% for field in fields %}
+    {{ field.name }}: {{ field.type }} {% if field.nullable %}= None{% endif %}
+
+{% endfor %}
+
+    def __init__(self{% for field in fields %}, {{ field.name }}: {{ field.type }} {% if field.nullable %}= None{% endif %}{% endfor %}):
+{% for field in fields %}
+        self.{{ field.name }} = {{ field.name }}
+{% else %}
+        pass
+{% endfor %}
+
