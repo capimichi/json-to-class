@@ -1,0 +1,62 @@
+{% extends "Default/index.html.twig" %}
+
+{% block content %}
+
+    <div class="body">
+        {% include 'Default/block/parsing_instance_status.html.twig' with { 'parsingInstance': parsingInstance } %}
+        {% include 'Default/block/parsing_instance_back.html.twig' with { 'parsingInstance': parsingInstance } %}
+
+        <div class="section-heading mb-5">
+            <h2 class="text-2xl font-semibold">{{ element.name }}</h2>
+        </div>
+
+        <div class="info-section mb-5">
+            <dl class="space-y-2">
+                <div class="flex">
+                    <dt class="font-semibold">Type:</dt>
+                    <dd class="ml-2">{{ element.type }}</dd>
+                </div>
+                <div class="flex">
+                    <dt class="font-semibold">Parent Element:</dt>
+                    <dd class="ml-2">
+                        <a href="{{ path('app_element_single', {'slug': parsingInstance.slug, 'id': element.parent.id}) }}"
+                           class="text-orange-500">
+                            {{ element.parent.name }}
+                        </a>
+                    </dd>
+                </div>
+                <div class="flex">
+                    <dt class="font-semibold">Nullable:</dt>
+                    <dd class="ml-2">{{ element.nullable ? 'Yes' : 'No' }}</dd>
+                </div>
+                <div class="flex">
+                    <dt class="font-semibold">Number of Children:</dt>
+                    <dd class="ml-2">{{ element.children|length }}</dd>
+                </div>
+
+            </dl>
+        </div>
+
+        <hr class="mb-5">
+
+        <div class="section-path mb-5">
+            <h3 class="text-lg font-semibold mb-2">Element Path:</h3>
+            <ul class="pl-0">
+                {% for part in element.path | split('.') | reverse %}
+                    <li class="ml-{{ loop.index }}">{{ part }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        
+        {% if element.children|length > 0 %}
+            <hr class="mb-5">
+
+            <div class="children-section mb-5">
+                <h3 class="text-lg font-semibold mb-2">Children:</h3>
+
+                {% include "Default/block/element_table.html.twig" with {elements: element.children} %}
+            </div>
+        {% endif %}
+    </div>
+{% endblock %}

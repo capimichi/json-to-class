@@ -1,0 +1,24 @@
+<table class="w-full border-collapse">
+    <thead>
+    <tr>
+        <th class="border-b border-gray-300 py-2 text-left">Name</th>
+        <th class="border-b border-gray-300 py-2 text-left">Type</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    {% for element in elements %}
+        <tr>
+            <td class="border-b border-gray-300 py-2 text-left">
+                <a href="{{ path('app_element_single', {
+                    slug: element.parsingInstance.slug,
+                    id: element.id
+                }) }}">{{ element.name }}</a>
+            </td>
+            <td class="border-b border-gray-300 py-2 text-left">
+                {{ element.type }}
+            </td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>

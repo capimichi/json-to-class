@@ -1,0 +1,19 @@
+{% extends "Default/index.html.twig" %}
+
+{% block content %}
+
+    <div class="body">
+
+        {% include 'Default/block/parsing_instance_status.html.twig' with { 'parsingInstance': parsingInstance } %}
+
+        {% include 'Default/block/parsing_instance_back.html.twig' with { 'parsingInstance': parsingInstance } %}
+
+
+        <div class="section-heading mb-5">
+            <h2 class="text-2xl font-semibold">Unknown types</h2>
+            <p class="text-sm">You can fix unknown type by: ignore it, set it a custom type</p>
+        </div>
+
+        {% include "Default/block/element_table.html.twig" with {elements: unknownTypeAnalysis.getUnknownTypeElements} %}
+    </div>
+{% endblock %}

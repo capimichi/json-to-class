@@ -13,7 +13,6 @@ use Doctrine\ORM\EntityManagerInterface;
 class JsonParser implements ParserInterface
 {
     
-    
     /**
      * @var ElementFactory
      */
@@ -124,15 +123,30 @@ class JsonParser implements ParserInterface
             
             $newNames = array_keys($data);
             
-            $differentNames = ArrayHelper::compareStringArrays(
-                $expectedNames,
-                $newNames
-            );
-            
-            foreach ($differentNames as $differentName) {
-                printf("I should set %s to nullable\n", $differentName);
+            if (!empty($expectedNames)) {
+                $differentNames = ArrayHelper::compareStringArrays(
+                    $expectedNames,
+                    $newNames
+                );
+                
+                foreach ($differentNames as $differentName) {
+                    foreach ($element->getChildren() as $child) {
+                        if (
+                            $child->getName() === $differentName
+                            && !$child->getNullable()
+                        ) {
+                            $this->elementFactory->createOrUpdateElement(
+                                $parsingInstance,
+                                $child->getPath(),
+                                $child->getName(),
+                                $child->getType(),
+                                true,
+                                $element
+                            );
+                        }
+                    }
+                }
             }
-            
         }
 
 //        printf("Parsed element %s\n", $element->getPath());

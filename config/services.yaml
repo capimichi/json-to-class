@@ -37,3 +37,8 @@ services:
     arguments:
       - json_schema: '@App\Exporter\JsonSchemaExporter'
         python_model: '@App\Exporter\PythonModelExporter'
+
+  App\FileManager\ParsingInstanceFileManager:
+    class: App\FileManager\ParsingInstanceFileManager
+    arguments:
+      - '%kernel.project_dir%/var/data'

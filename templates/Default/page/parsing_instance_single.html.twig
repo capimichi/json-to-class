@@ -1,0 +1,37 @@
+{% extends "Default/index.html.twig" %}
+
+{% block content %}
+
+    <div class="body">
+        {% include 'Default/block/parsing_instance_status.html.twig' with { 'parsingInstance': parsingInstance } %}
+
+        {% if parsingInstance.status == constant('App\\Enum\\ParsingInstanceStatusEnum::STATUS_NEW') %}
+            <p>I dati sono in attesa di elaborazione.</p>
+        {% elseif parsingInstance.status == constant('App\\Enum\\ParsingInstanceStatusEnum::STATUS_PROCESSING') %}
+            <p>Elaborazione in corso.</p>
+        {% elseif parsingInstance.status == constant('App\\Enum\\ParsingInstanceStatusEnum::STATUS_ERROR') %}
+            <p>Si è verificato un errore durante l'elaborazione.</p>
+        {% elseif parsingInstance.status == constant('App\\Enum\\ParsingInstanceStatusEnum::STATUS_COMPLETED') %}
+            <div class="menu-actions">
+                <ul class="space-y-0">
+                    <li class="border-b">
+                        <a href="{{ path('app_parsing_instance_single_unknown_types', { 'slug': parsingInstance.slug }) }}"
+                           class="py-2 block hover:bg-orange-200 transition-colors duration-200 relative">
+                            Unknown Types
+                            <span class="absolute top-1/2 transform -translate-y-1/2 right-0 inline-block bg-red-500 text-white text-xs rounded-full px-1 py-0.5 text-xxs">
+                                {{ unknownTypeAnalysis.getUnknownTypeElementsCount }}
+                            </span>
+                        </a>
+                    </li>
+                    <li class="border-b">
+                        <a href="#"
+                           class="py-2 block hover:bg-orange-200 transition-colors duration-200 relative">
+                            Similar Entities
+                            <span class="absolute top-1/2 transform -translate-y-1/2 right-0 inline-block bg-red-500 text-white text-xs rounded-full px-1 py-0.5 text-xxs">3</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        {% endif %}
+    </div>
+{% endblock %}
