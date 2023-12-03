@@ -63,11 +63,125 @@ class SimilarityComparison
         return $this->getSourceElement()->getId() == $this->getTargetElement()->getId();
     }
     
-    /**
-     * @return bool
-     */
-    public function hasSameName(): bool
+    public function getNameDistance(): int
     {
-        return $this->getSourceElement()->getName() == $this->getTargetElement()->getName();
+        $sourceName = $this->getSourceElement()->getName();
+        $targetName = $this->getTargetElement()->getName();
+        return levenshtein($sourceName, $targetName);
+    }
+    
+    public function getFieldInBoths(): array
+    {
+        $sourceElement = $this->getSourceElement();
+        $sourceChildren = $sourceElement->getChildren()->toArray();
+        
+        $targetElement = $this->getTargetElement();
+        $targetChildren = $targetElement->getChildren()->toArray();
+        
+        $fieldsInBoth = [];
+        foreach ($sourceChildren as $sourceChild) {
+            foreach ($targetChildren as $targetChild) {
+                if ($sourceChild->getName() === $targetChild->getName()) {
+                    $fieldsInBoth[$sourceChild->getId()] = $sourceChild;
+                }
+            }
+        }
+        $fieldsInBoth = array_values($fieldsInBoth);
+        return $fieldsInBoth;
+    }
+    
+    public function getFieldsDifferences(): array
+    {
+        $sourceElement = $this->getSourceElement();
+        $sourceChildren = $sourceElement->getChildren()->toArray();
+        
+        $targetElement = $this->getTargetElement();
+        $targetChildren = $targetElement->getChildren()->toArray();
+        
+        $fieldsDifferences = [];
+        foreach ($sourceChildren as $sourceChild) {
+            $found = false;
+            foreach ($targetChildren as $targetChild) {
+                if ($sourceChild->getName() === $targetChild->getName()) {
+                    $found = true;
+                }
+            }
+            if (!$found) {
+                $fieldsDifferences[$sourceChild->getId()] = $sourceChild;
+            }
+        }
+        foreach ($targetChildren as $targetChild) {
+            $found = false;
+            foreach ($sourceChildren as $sourceChild) {
+                if ($sourceChild->getName() === $targetChild->getName()) {
+                    $found = true;
+                }
+            }
+            if (!$found) {
+                $fieldsDifferences[$targetChild->getId()] = $targetChild;
+            }
+        }
+        $fieldsDifferences = array_values($fieldsDifferences);
+        return $fieldsDifferences;
+    }
+    
+    public function getFieldsDifferencesCount(): int
+    {
+        return count($this->getFieldsDifferences());
+    }
+    
+    public function getFieldsInBothsCount(): int
+    {
+        return count($this->getFieldInBoths());
+    }
+    
+    public function getFieldsCount(): int
+    {
+        return $this->getFieldsInBothsCount() + $this->getFieldsDifferencesCount();
+    }
+    
+    public function getFieldsSimilarity(): float
+    {
+        $fieldsInBothsCount = $this->getFieldsInBothsCount();
+        $fieldsCount = $this->getFieldsCount();
+        if ($fieldsCount === 0) {
+            return 0;
+        }
+        return $fieldsInBothsCount / $fieldsCount;
+    }
+    
+    public function getNameSimilarity(): float
+    {
+        $nameDistance = $this->getNameDistance();
+        $nameLength = max(strlen($this->getSourceElement()->getName()), strlen($this->getTargetElement()->getName()));
+        if ($nameLength === 0) {
+            return 0;
+        }
+        return 1 - ($nameDistance / $nameLength);
+    }
+    
+    public function getSimilarity(): float
+    {
+        $fieldsSimilarity = $this->getFieldsSimilarity();
+        $nameSimilarity = $this->getNameSimilarity();
+        return ($fieldsSimilarity + $nameSimilarity) / 2;
+    }
+    
+    public function getSourceChildren(): array
+    {
+        $children = $this->getSourceElement()->getChildren()->toArray();
+        usort($children, function (Element $a, Element $b) {
+            return $a->getName() <=> $b->getName();
+        });
+        return $children;
+    }
+    
+    public function getTargetChildren(): array
+    {
+        $children = $this->getTargetElement()->getChildren()->toArray();
+        usort($children, function (Element $a, Element $b) {
+            return $a->getName() <=> $b->getName();
+        });
+        return $children;
     }
 }

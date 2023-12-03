@@ -1,0 +1,30 @@
+<div class="similarity-groups-table">
+    <div class="groups">
+        {% for group in groups %}
+            <div class="group border-t-2 border-slate-400 py-4">
+                <div class="group-form">
+                    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                        Group Name
+                        <input type="text"
+                               class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                               placeholder="Group Name"
+                                 name="group-name"
+                                 />
+                    </label>
+                </div>
+                <div class="group-elements grid gap-2 grid-cols-2">
+                    {% for element in group.getElements %}
+                        <div class="element bg-gray-100 rounded p-2" data-element-id="{{ element.id }}">
+                            {{ element.name }}
+                            {% for child in element.children %}
+                                <div class="child text-xs mt-1">
+                                    {{ child.name }}
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</div>

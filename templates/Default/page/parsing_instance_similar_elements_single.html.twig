@@ -1,0 +1,78 @@
+{% extends "Default/index.html.twig" %}
+
+{% block content %}
+
+    <div class="body">
+
+        {% include 'Default/block/parsing_instance_status.html.twig' with { 'parsingInstance': parsingInstance } %}
+
+        {% include 'Default/block/parsing_instance_back.html.twig' with { 'parsingInstance': parsingInstance } %}
+
+
+        <div class="section-heading mb-5">
+            <h2 class="text-2xl font-semibold mb-2">Similar entities</h2>
+            <p class="text-sm">Find similar entities that can be mapped into the same</p>
+        </div>
+
+        {% include 'Default/block/similarity_groups_table.html.twig' with {
+            'groups': similarElementAnalysis.getElementGroups(),
+            'form': form,
+        } %}
+
+        <div class="submit-area">
+            <button id="save-groups-button" class="btn btn-primary" type="button">Save</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const saveGroupsButton = document.getElementById('save-groups-button');
+            saveGroupsButton.addEventListener('click', function () {
+                const groups = document.querySelectorAll('.groups .group');
+                var dataItems = [];
+                groups.forEach(function (group) {
+
+                    const nameInput = group.querySelector('[name="group-name"]');
+                    if (nameInput) {
+                        const groupName = nameInput.value;
+                        if (groupName) {
+                            var elementIds = [];
+                            const elements = group.querySelectorAll('.element');
+                            elements.forEach(function (element) {
+                                // read element id from data-element-id attribute
+                                const elementId = element.dataset.elementId;
+                                elementIds.push(elementId);
+                            });
+
+                            const groupData = {
+                                'name': groupName,
+                                'elementIds': elementIds,
+                            };
+                            dataItems.push(groupData);
+                        }
+                    }
+                });
+
+                const xhr = new XMLHttpRequest();
+                const url = '{{ path('app_api_parsing_instance_single_groups', {
+                    'slug': parsingInstance.slug,
+                }) }}';
+                xhr.open('POST', url, true);
+                xhr.setRequestHeader('Content-Type', 'application/json');
+                xhr.onload = function () {
+                    if (xhr.status === 200) {
+                        const response = JSON.parse(xhr.responseText);
+                        if (response.success) {
+                            // window.location.href = response.redirectUrl;
+                        } else {
+                            // alert(response.message);
+                        }
+                    } else {
+                        alert('Request failed.  Returned status of ' + xhr.status);
+                    }
+                };
+                xhr.send(JSON.stringify(dataItems));
+            });
+        });
+    </script>
+{% endblock %}

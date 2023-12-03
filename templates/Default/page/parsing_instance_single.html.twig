@@ -12,7 +12,7 @@
         {% elseif parsingInstance.status == constant('App\\Enum\\ParsingInstanceStatusEnum::STATUS_ERROR') %}
             <p>Si è verificato un errore durante l'elaborazione.</p>
         {% elseif parsingInstance.status == constant('App\\Enum\\ParsingInstanceStatusEnum::STATUS_COMPLETED') %}
-            <div class="menu-actions">
+            <div class="menu-actions mb-5">
                 <ul class="space-y-0">
                     <li class="border-b">
                         <a href="{{ path('app_parsing_instance_single_unknown_types', { 'slug': parsingInstance.slug }) }}"
@@ -24,13 +24,35 @@
                         </a>
                     </li>
                     <li class="border-b">
-                        <a href="#"
+                        <a href="{{ path('app_parsing_instance_single_similar_elements', {
+                            'slug': parsingInstance.slug
+                        }) }}"
                            class="py-2 block hover:bg-orange-200 transition-colors duration-200 relative">
                             Similar Entities
                             <span class="absolute top-1/2 transform -translate-y-1/2 right-0 inline-block bg-red-500 text-white text-xs rounded-full px-1 py-0.5 text-xxs">3</span>
                         </a>
                     </li>
                 </ul>
+            </div>
+
+            <div class="export-area">
+                <h2 class="text-2xl font-semibold mb-2">Export</h2>
+
+                {{ form_start(exportForm, {'attr': {'class': 'space-y-4'}}) }}
+                {{ form_label(exportForm.exportType, 'Root Name', {'label_attr': {'class': 'block mb-2 text-sm font-medium text-gray-900 dark:text-white'}}) }}
+                {{ form_errors(exportForm.exportType) }}
+                {{ form_widget(exportForm.exportType, {
+                    'attr': {
+                        'class': 'bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500',
+                        'placeholder': 'Root',
+                        'required': 'required'
+                    }
+                }) }}
+
+                <button type="submit" class="mt-3 px-4 py-2 bg-orange-500 text-white rounded-md">Convert</button>
+
+                {{ form_end(exportForm) }}
+
             </div>
         {% endif %}
     </div>

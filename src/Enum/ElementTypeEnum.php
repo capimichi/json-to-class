@@ -10,5 +10,6 @@ class ElementTypeEnum
     const TYPE_BOOLEAN = 'boolean';
     const TYPE_ARRAY   = 'array';
     const TYPE_OBJECT  = 'object';
+    const TYPE_DICT    = 'dict';
     const TYPE_UNKNOWN = 'unknown';
 }

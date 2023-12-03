@@ -5,6 +5,8 @@ namespace App\Exporter;
 
 
 use App\Entity\Element;
+use App\Enum\ElementTypeEnum;
+use App\EnumElementTypeEnum;
 use Doctrine\Inflector\InflectorFactory;
 use Twig\Environment;
 
@@ -31,22 +33,24 @@ class PythonModelExporter implements ExporterInterface
      * @inheritDoc
      */
     public function export(
-        \App\Entity\ParsingInstance $parsingInstance,
-        $path
+        \App\Entity\ParsingInstance $parsingInstance
     )
     {
         $elements = $parsingInstance->getElements()->toArray();
         // filter elements to find the root element
         $elements = array_filter($elements, function (\App\Entity\Element $element) {
-            return $element->getType() == \ElementTypeEnum::TYPE_OBJECT;
+            return $element->getType() == ElementTypeEnum::TYPE_OBJECT;
         });
         
-        $exportName = sprintf("json-to-class-instance-%s.py", $parsingInstance->getId());
+        $exportName = sprintf("json-to-class-instance-%s-%s.zip", $parsingInstance->getId(), date('YmdHis'));
         $exportDir = sys_get_temp_dir() . DIRECTORY_SEPARATOR . $exportName;
+        $path = $exportDir . DIRECTORY_SEPARATOR . $exportName;
+        
         if (!is_dir($exportDir)) {
             mkdir($exportDir);
         }
         
+        $dropPaths = [];
         foreach ($elements as $element) {
             $content = $this->exportElement($element);
             $relPath = $this->getObjectPath($element);
@@ -60,6 +64,7 @@ class PythonModelExporter implements ExporterInterface
                 touch($initPath);
             }
             file_put_contents($finalPath, $content);
+            $dropPaths[] = $finalPath;
         }
         
         $zip = new \ZipArchive();
@@ -76,8 +81,13 @@ class PythonModelExporter implements ExporterInterface
             }
         }
         $zip->close();
+        foreach ($dropPaths as $dropPath) {
+            unlink($dropPath);
+        }
+
+//        exec("rm -rf $exportDir");
         
-        exec("rm -rf $exportDir");
+        return $path;
     }
     
     private function exportElement(Element $element)
@@ -93,7 +103,7 @@ class PythonModelExporter implements ExporterInterface
             $fields[] = $field;
             
             $import = $this->getObjectImport($child);
-            if (!in_array($import, $imports)) {
+            if ($import && !in_array($import, $imports)) {
                 $imports[] = $import;
             }
         }
@@ -117,13 +127,17 @@ class PythonModelExporter implements ExporterInterface
     private function getObjectImport(Element $element)
     {
         $allowedTypes = [
-            \ElementTypeEnum::TYPE_OBJECT,
-            \ElementTypeEnum::TYPE_ARRAY,
+            ElementTypeEnum::TYPE_OBJECT,
+            ElementTypeEnum::TYPE_ARRAY,
         ];
         if (!in_array($element->getType(), $allowedTypes)) {
             return null;
         }
-        if ($element->getType() == \ElementTypeEnum::TYPE_ARRAY) {
+        if ($element->getType() == ElementTypeEnum::TYPE_ARRAY) {
+            $child = $element->getChildren()->first();
+            if (!$child) {
+                return null;
+            }
             $element = $element->getChildren()->first();
         }
         $path = $this->getObjectPath($element);
@@ -159,22 +173,27 @@ class PythonModelExporter implements ExporterInterface
     private function getType(Element $element)
     {
         switch ($element->getType()) {
-            case \ElementTypeEnum::TYPE_OBJECT:
+            case ElementTypeEnum::TYPE_OBJECT:
                 $type = $this->getClassName($element);
                 break;
-            case \ElementTypeEnum::TYPE_ARRAY:
-                $type = sprintf('List[%s]', $this->getType($element->getChildren()->first()));
+            case ElementTypeEnum::TYPE_ARRAY:
+                $child = $element->getChildren()->first();
+                if (!$child) {
+                    $type = null;
+                } else {
+                    $type = sprintf('List[%s]', $this->getType($element->getChildren()->first()));
+                }
                 break;
-            case \ElementTypeEnum::TYPE_STRING:
+            case ElementTypeEnum::TYPE_STRING:
                 $type = 'str';
                 break;
-            case \ElementTypeEnum::TYPE_INTEGER:
+            case ElementTypeEnum::TYPE_INTEGER:
                 $type = 'int';
                 break;
-            case \ElementTypeEnum::TYPE_FLOAT:
+            case ElementTypeEnum::TYPE_FLOAT:
                 $type = 'float';
                 break;
-            case \ElementTypeEnum::TYPE_BOOLEAN:
+            case ElementTypeEnum::TYPE_BOOLEAN:
                 $type = 'bool';
                 break;
             default:

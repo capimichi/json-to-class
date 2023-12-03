@@ -1,0 +1,42 @@
+<div class="similarity-comparison-table">
+    <table class="table-auto w-full mb-4">
+        <thead>
+            <tr>
+                <th class="px-4 py-2">Similarity</th>
+                <th class="px-4 py-2">Both Count</th>
+                <th class="px-4 py-2">Diff Count</th>
+                <th class="px-4 py-2">Source</th>
+                <th class="px-4 py-2">Target</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for comparison in similarityComparisons %}
+                <tr>
+                    <td class="border px-4 py-2">{{ comparison.similarity }}</td>
+                    <td class="border px-4 py-2">{{ comparison.getFieldsInBothsCount }}</td>
+                    <td class="border px-4 py-2">{{ comparison.getFieldsDifferencesCount }}</td>
+                    <td class="border px-4 py-2">
+                        <a href="{{ path('app_element_single', {'slug': comparison.sourceElement.parsingInstance.slug, 'id': comparison.sourceElement.id}) }}" class="text-orange-500">
+                            {{ comparison.sourceElement.name }}
+                        </a>
+                        {% for child in comparison.sourceChildren %}
+                            <div class="text-xs">
+                                <strong>Child:</strong> {{ child.name }}
+                            </div>
+                        {% endfor %}
+                    </td>
+                    <td class="border px-4 py-2">
+                        <a href="{{ path('app_element_single', {'slug': comparison.targetElement.parsingInstance.slug, 'id': comparison.targetElement.id}) }}" class="text-orange-500">
+                            {{ comparison.targetElement.name }}
+                        </a>
+                        {% for child in comparison.targetChildren %}
+                            <div class="text-xs">
+                                <strong>Child:</strong> {{ child.name }}
+                            </div>
+                        {% endfor %}
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>

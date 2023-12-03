@@ -28,4 +28,34 @@ class ArrayHelper
         }
         return $count;
     }
+    
+    public static function isArrayDict($array)
+    {
+        // First, check if contains any numeric keys
+        $hasNumericKeys = count(array_filter(array_keys($array), 'is_numeric')) > 0;
+        if ($hasNumericKeys) {
+            return true;
+        }
+        
+        // Second, check if contains any strange characters in keys
+        $checkChars = [
+            ".",
+            "-",
+        ];
+        
+        $hasStrangeChars = count(array_filter(array_keys($array), function ($key) use ($checkChars) {
+                foreach ($checkChars as $checkChar) {
+                    if (strpos($key, $checkChar) !== false) {
+                        return true;
+                    }
+                }
+                return false;
+            })) > 0;
+        
+        if ($hasStrangeChars) {
+            return true;
+        }
+        
+        return false;
+    }
 }

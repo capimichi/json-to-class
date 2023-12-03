@@ -10,8 +10,8 @@
 
 
         <div class="section-heading mb-5">
-            <h2 class="text-2xl font-semibold">Unknown types</h2>
-            <p class="text-sm">You can fix unknown type by: ignore it, set it a custom type</p>
+            <h2 class="text-2xl font-semibold mb-2">Unknown types</h2>
+            <p class="text-sm">These are the fields that won't be exported because type was not found</p>
         </div>
 
         {% include "Default/block/element_table.html.twig" with {elements: unknownTypeAnalysis.getUnknownTypeElements} %}

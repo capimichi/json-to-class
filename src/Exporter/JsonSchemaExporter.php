@@ -13,8 +13,7 @@ class JsonSchemaExporter implements ExporterInterface
      * @inheritDoc
      */
     public function export(
-        \App\Entity\ParsingInstance $parsingInstance,
-        $path
+        \App\Entity\ParsingInstance $parsingInstance
     )
     {
         $elements = $parsingInstance->getElements()->toArray();
@@ -34,7 +33,12 @@ class JsonSchemaExporter implements ExporterInterface
         
         $json = json_encode($data, JSON_PRETTY_PRINT);
         
+        $name = sprintf("json-schema-%s-%s.json", $parsingInstance->getId(), date('YmdHis'));
+        $path = $exportDir . DIRECTORY_SEPARATOR . $name;
+        
         file_put_contents($path, $json);
+        
+        return $path;
     }
     
     private function exportElement(Element $element)

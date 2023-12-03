@@ -3,18 +3,26 @@ version: '3'
 services:
   # PHP Service
   php:
-    image: capimichi-php:8.1-apache
+    image: webdevops/php-apache-dev:8.1
     container_name: lamp_php
     ports:
       - "8085:80"
     volumes:
-      - ./:/var/www/html
+      - ./:/app
     environment:
-      APACHE_DOCUMENT_ROOT: /var/www/html/public
+      WEB_DOCUMENT_ROOT: "/app/public"
+      XDEBUG_MODE: debug
+      XDEBUG_CLIENT_PORT: 9003
+      XDEBUG_CLIENT_HOST: host.docker.internal
+      XDEBUG_START_WITH_REQUEST: yes
+      XDEBUG_DISCOVER_CLIENT_HOST: true
+      XDEBUG_IDE_KEY: PHPSTORM
+
     depends_on:
       - mysql
     networks:
       - json_to_class_network
+
 
   # MySQL Service
   mysql:

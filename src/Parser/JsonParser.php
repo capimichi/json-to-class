@@ -38,7 +38,8 @@ class JsonParser implements ParserInterface
     public function parse(
         ParsingInstance $parsingInstance,
         $rootName,
-        $content
+        $content,
+        $callback = null
     )
     {
         $data = json_decode($content, true);
@@ -47,7 +48,10 @@ class JsonParser implements ParserInterface
         $this->parseElement(
             $parsingInstance,
             $rootName,
-            $data
+            $data,
+            '',
+            null,
+            $callback
         );
     }
     
@@ -67,7 +71,11 @@ class JsonParser implements ParserInterface
             if ($arrayIsList) {
                 $type = ElementTypeEnum::TYPE_ARRAY;
             } else {
-                $type = ElementTypeEnum::TYPE_OBJECT;
+                if (ArrayHelper::isArrayDict($data)) {
+                    $type = ElementTypeEnum::TYPE_DICT;
+                } else {
+                    $type = ElementTypeEnum::TYPE_OBJECT;
+                }
             }
         } else {
             if (is_float($data)) {
@@ -93,7 +101,10 @@ class JsonParser implements ParserInterface
             $parent
         );
         
-        if ($type === ElementTypeEnum::TYPE_ARRAY) {
+        if (
+            $type === ElementTypeEnum::TYPE_ARRAY
+            || $type === ElementTypeEnum::TYPE_DICT
+        ) {
             $singularName = $this->singularize($name);
             foreach ($data as $index => $value) {
                 $listElement = $this->parseElement(
@@ -101,7 +112,8 @@ class JsonParser implements ParserInterface
                     $singularName,
                     $value,
                     $path,
-                    $element
+                    $element,
+                    $callback
                 );
             }
         } elseif ($type === ElementTypeEnum::TYPE_OBJECT) {
@@ -117,7 +129,8 @@ class JsonParser implements ParserInterface
                     $key,
                     $value,
                     $path,
-                    $element
+                    $element,
+                    $callback
                 );
             }
             
@@ -148,7 +161,8 @@ class JsonParser implements ParserInterface
                 }
             }
         }
-
+        
+        $callback($element);
 //        printf("Parsed element %s\n", $element->getPath());
         
         return $element;

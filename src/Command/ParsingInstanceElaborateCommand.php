@@ -83,7 +83,9 @@ class ParsingInstanceElaborateCommand extends Command
         $jsonContent = $this->parsingInstanceFileManager->readDataFromFile(ParsingInstanceFileManager::INPUT_FILE_NAME);
         
         try {
-            $this->parser->parse($parsingInstance, $rootName, $jsonContent);
+            $this->parser->parse($parsingInstance, $rootName, $jsonContent, function ($element) use ($io) {
+                $io->writeln('Element: ' . $element->getName());
+            });
         } catch (\Exception $e) {
             $io->error($e->getMessage());
             $parsingInstance->setStatus(ParsingInstanceStatusEnum::STATUS_ERROR);

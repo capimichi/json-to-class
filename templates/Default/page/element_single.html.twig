@@ -39,16 +39,21 @@
 
         <hr class="mb-5">
 
+        {% set parents = [] %}
+        {% set parentElement = element.parent %}
+        {% for i in 0..100 %}
+            {% if parentElement is not null %}
+                {% set parents = parents|merge([parentElement]) %}
+                {% set parentElement = parentElement.parent %}
+            {% endif %}
+        {% endfor %}
+
         <div class="section-path mb-5">
-            <h3 class="text-lg font-semibold mb-2">Element Path:</h3>
-            <ul class="pl-0">
-                {% for part in element.path | split('.') | reverse %}
-                    <li class="ml-{{ loop.index }}">{{ part }}</li>
-                {% endfor %}
-            </ul>
+            <h3 class="text-lg font-semibold mb-2">Parents:</h3>
+            {% include "Default/block/element_table.html.twig" with {elements: parents} %}
         </div>
 
-        
+
         {% if element.children|length > 0 %}
             <hr class="mb-5">
 

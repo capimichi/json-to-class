@@ -22,12 +22,12 @@ class ExporterService
         $this->exporters = $exporters;
     }
     
-    public function export($exporter, $parsingInstance, $path)
+    public function export($exporterType, $parsingInstance)
     {
-        if (!isset($this->exporters[$exporter])) {
+        if (!isset($this->exporters[$exporterType])) {
             throw new \Exception('Exporter not found');
         }
-        $this->exporters[$exporter]->export($parsingInstance, $path);
+        return $this->exporters[$exporterType]->export($parsingInstance);
     }
     
 }
