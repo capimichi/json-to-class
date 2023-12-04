@@ -128,12 +128,16 @@ class PythonModelExporter implements ExporterInterface
     {
         $allowedTypes = [
             ElementTypeEnum::TYPE_OBJECT,
+            ElementTypeEnum::TYPE_DICT,
             ElementTypeEnum::TYPE_ARRAY,
         ];
         if (!in_array($element->getType(), $allowedTypes)) {
             return null;
         }
-        if ($element->getType() == ElementTypeEnum::TYPE_ARRAY) {
+        if (
+            $element->getType() == ElementTypeEnum::TYPE_ARRAY
+            || $element->getType() == ElementTypeEnum::TYPE_DICT
+        ) {
             $child = $element->getChildren()->first();
             if (!$child) {
                 return null;
@@ -181,7 +185,15 @@ class PythonModelExporter implements ExporterInterface
                 if (!$child) {
                     $type = null;
                 } else {
-                    $type = sprintf('List[%s]', $this->getType($element->getChildren()->first()));
+                    $type = sprintf('List[%s]', $this->getType($child));
+                }
+                break;
+            case ElementTypeEnum::TYPE_DICT:
+                $child = $element->getChildren()->first();
+                if (!$child) {
+                    $type = null;
+                } else {
+                    $type = sprintf('Dict[str, %s]', $this->getType($child));
                 }
                 break;
             case ElementTypeEnum::TYPE_STRING:
