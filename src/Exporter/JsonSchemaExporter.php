@@ -5,6 +5,7 @@ namespace App\Exporter;
 
 
 use App\Entity\Element;
+use App\Enum\ElementTypeEnum;
 
 class JsonSchemaExporter implements ExporterInterface
 {
@@ -13,13 +14,14 @@ class JsonSchemaExporter implements ExporterInterface
      * @inheritDoc
      */
     public function export(
-        \App\Entity\ParsingInstance $parsingInstance
+        \App\Entity\ParsingInstance $parsingInstance,
+        $options = []
     )
     {
         $elements = $parsingInstance->getElements()->toArray();
         // filter elements to find the root element
         $elements = array_filter($elements, function (\App\Entity\Element $element) {
-            return $element->getType() == \ElementTypeEnum::TYPE_OBJECT && $element->getParent() == null;
+            return $element->getType() == ElementTypeEnum::TYPE_OBJECT && $element->getParent() == null;
         });
         if (count($elements) != 1) {
             throw new \Exception('There should be only one root element');
@@ -45,7 +47,7 @@ class JsonSchemaExporter implements ExporterInterface
     {
         $data = [];
         switch ($element->getType()) {
-            case \ElementTypeEnum::TYPE_OBJECT:
+            case ElementTypeEnum::TYPE_OBJECT:
                 $data = [
                     'type'       => 'object',
                     'properties' => [],
@@ -60,7 +62,7 @@ class JsonSchemaExporter implements ExporterInterface
                     }
                 }
                 break;
-            case \ElementTypeEnum::TYPE_ARRAY:
+            case ElementTypeEnum::TYPE_ARRAY:
                 $data = [
                     'type' => 'array',
                 ];
@@ -69,17 +71,17 @@ class JsonSchemaExporter implements ExporterInterface
                     $data['items'] = $this->exportElement($children[0]);
                 }
                 break;
-            case \ElementTypeEnum::TYPE_STRING:
+            case ElementTypeEnum::TYPE_STRING:
                 $data = [
                     'type' => 'string',
                 ];
                 break;
-            case \ElementTypeEnum::TYPE_INTEGER:
+            case ElementTypeEnum::TYPE_INTEGER:
                 $data = [
                     'type' => 'integer',
                 ];
                 break;
-            case \ElementTypeEnum::TYPE_BOOLEAN:
+            case ElementTypeEnum::TYPE_BOOLEAN:
                 $data = [
                     'type' => 'boolean',
                 ];

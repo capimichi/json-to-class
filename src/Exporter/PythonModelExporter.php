@@ -33,9 +33,11 @@ class PythonModelExporter implements ExporterInterface
      * @inheritDoc
      */
     public function export(
-        \App\Entity\ParsingInstance $parsingInstance
+        \App\Entity\ParsingInstance $parsingInstance,
+        $options = []
     )
     {
+        $prefix = $options['prefix'] ?? '';
         $elements = $parsingInstance->getElements()->toArray();
         // filter elements to find the root element
         $elements = array_filter($elements, function (\App\Entity\Element $element) {
@@ -52,8 +54,8 @@ class PythonModelExporter implements ExporterInterface
         
         $dropPaths = [];
         foreach ($elements as $element) {
-            $content = $this->exportElement($element);
-            $relPath = $this->getObjectPath($element);
+            $content = $this->exportElement($element, $prefix);
+            $relPath = $this->getObjectPath($element, $prefix);
             $finalPath = $exportDir . DIRECTORY_SEPARATOR . $relPath;
             $finalDir = dirname($finalPath);
             $initPath = $finalDir . DIRECTORY_SEPARATOR . '__init__.py';
@@ -90,7 +92,7 @@ class PythonModelExporter implements ExporterInterface
         return $path;
     }
     
-    private function exportElement(Element $element)
+    private function exportElement(Element $element, $prefix = "")
     {
         $fields = [];
         $imports = [];
@@ -102,7 +104,7 @@ class PythonModelExporter implements ExporterInterface
             ];
             $fields[] = $field;
             
-            $import = $this->getObjectImport($child);
+            $import = $this->getObjectImport($child, $prefix);
             if ($import && !in_array($import, $imports)) {
                 $imports[] = $import;
             }
@@ -124,7 +126,7 @@ class PythonModelExporter implements ExporterInterface
         return $classContent;
     }
     
-    private function getObjectImport(Element $element)
+    private function getObjectImport(Element $element, $prefix = "")
     {
         $allowedTypes = [
             ElementTypeEnum::TYPE_OBJECT,
@@ -148,10 +150,11 @@ class PythonModelExporter implements ExporterInterface
         $path = rtrim($path, '.py');
         $path = str_replace(DIRECTORY_SEPARATOR, '.', $path);
         $className = $this->getClassName($element);
-        return sprintf("from %s import %s", $path, $className);
+        $prefixPart = $prefix ? $prefix . '.' : '';
+        return sprintf("from %s%s import %s", $prefixPart, $path, $className);
     }
     
-    private function getObjectPath(Element $element)
+    private function getObjectPath(Element $element, $prefix = "")
     {
         $path = [];
         $path[] = $element->getName();
@@ -165,6 +168,10 @@ class PythonModelExporter implements ExporterInterface
             return InflectorFactory::create()->build()->classify($item);
         }, $path);
         $path = implode(DIRECTORY_SEPARATOR, $path);
+        if ($prefix) {
+            $prefixDir = str_replace('.', DIRECTORY_SEPARATOR, $prefix);
+            $path = $prefixDir . DIRECTORY_SEPARATOR . $path;
+        }
         $path .= '.py';
         return $path;
     }

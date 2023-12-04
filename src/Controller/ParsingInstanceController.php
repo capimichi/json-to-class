@@ -34,7 +34,9 @@ class ParsingInstanceController extends AbstractController
             $exportData = $exportForm->getData();
             $exportType = $exportData['exportType'];
             
-            $path = $exporterService->export($exportType, $parsingInstance);
+            $path = $exporterService->export($exportType, $parsingInstance, [
+                'prefix' => $exportData['prefix'],
+            ]);
             
             return $this->file($path);
         }

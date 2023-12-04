@@ -7,11 +7,12 @@ interface ExporterInterface
     
     /**
      * @param \App\Entity\ParsingInstance $parsingInstance
-     * @param string                      $exportDir
+     * @param array                       $options
      *
      * @return string
      */
     public function export(
-        \App\Entity\ParsingInstance $parsingInstance
+        \App\Entity\ParsingInstance $parsingInstance,
+        $options = []
     );
 }
