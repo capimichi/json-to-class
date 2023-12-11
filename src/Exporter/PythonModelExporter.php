@@ -6,6 +6,7 @@ namespace App\Exporter;
 
 use App\Entity\Element;
 use App\Enum\ElementTypeEnum;
+use App\Enum\PythonTypeEnum;
 use App\EnumElementTypeEnum;
 use Doctrine\Inflector\InflectorFactory;
 use Twig\Environment;
@@ -28,30 +29,70 @@ class PythonModelExporter implements ExporterInterface
         $this->twig = $twig;
     }
     
-    
     /**
-     * @inheritDoc
+     * @param \App\Entity\ParsingInstance $parsingInstance
+     * @param array                       $options
+     *
+     * @return string
+     * @throws \Twig\Error\LoaderError
+     * @throws \Twig\Error\RuntimeError
+     * @throws \Twig\Error\SyntaxError
      */
-    public function export(
-        \App\Entity\ParsingInstance $parsingInstance,
-        $options = []
-    )
+    public function export(\App\Entity\ParsingInstance $parsingInstance, $options = [])
     {
         $prefix = $options['prefix'] ?? '';
-        $elements = $parsingInstance->getElements()->toArray();
-        // filter elements to find the root element
-        $elements = array_filter($elements, function (\App\Entity\Element $element) {
-            return $element->getType() == ElementTypeEnum::TYPE_OBJECT;
-        });
-        
+        $elements = $this->getElements($parsingInstance);
         $exportName = sprintf("json-to-class-instance-%s-%s.zip", $parsingInstance->getId(), date('YmdHis'));
         $exportDir = sys_get_temp_dir() . DIRECTORY_SEPARATOR . $exportName;
         $path = $exportDir . DIRECTORY_SEPARATOR . $exportName;
         
+        $this->createExportDirectory($exportDir);
+        $dropPaths = $this->createFiles($elements, $exportDir, $prefix);
+        $this->createZipArchive($path, $exportDir);
+        $this->cleanup($dropPaths);
+        
+        return $path;
+    }
+    
+    /**
+     * @param $parsingInstance
+     *
+     * @return array
+     */
+    protected function getElements($parsingInstance)
+    {
+        $elements = $parsingInstance->getElements()->toArray();
+        return array_filter($elements, function (\App\Entity\Element $element) {
+            return $element->getType() == ElementTypeEnum::TYPE_OBJECT;
+        });
+    }
+    
+    /**
+     * Creates the export directory.
+     *
+     * @param string $exportDir The path of the export directory.
+     *
+     * @return void
+     */
+    protected function createExportDirectory($exportDir)
+    {
         if (!is_dir($exportDir)) {
             mkdir($exportDir);
         }
-        
+    }
+    
+    /**
+     * @param $elements
+     * @param $exportDir
+     * @param $prefix
+     *
+     * @return array
+     * @throws \Twig\Error\LoaderError
+     * @throws \Twig\Error\RuntimeError
+     * @throws \Twig\Error\SyntaxError
+     */
+    protected function createFiles($elements, $exportDir, $prefix)
+    {
         $dropPaths = [];
         foreach ($elements as $element) {
             $content = $this->exportElement($element, $prefix);
@@ -68,7 +109,19 @@ class PythonModelExporter implements ExporterInterface
             file_put_contents($finalPath, $content);
             $dropPaths[] = $finalPath;
         }
-        
+        return $dropPaths;
+    }
+    
+    /**
+     * Creates a zip archive.
+     *
+     * @param string $path      The path of the zip archive.
+     * @param string $exportDir The directory to be exported.
+     *
+     * @return void
+     */
+    protected function createZipArchive($path, $exportDir)
+    {
         $zip = new \ZipArchive();
         $zip->open($path, \ZipArchive::CREATE);
         $files = new \RecursiveIteratorIterator(
@@ -83,16 +136,46 @@ class PythonModelExporter implements ExporterInterface
             }
         }
         $zip->close();
+    }
+    
+    /**
+     * Cleans up the given drop paths.
+     *
+     * @param array $dropPaths The drop paths to be cleaned up.
+     *
+     * @return void
+     */
+    protected function cleanup($dropPaths)
+    {
         foreach ($dropPaths as $dropPath) {
             unlink($dropPath);
         }
-
-//        exec("rm -rf $exportDir");
-        
-        return $path;
     }
     
-    private function exportElement(Element $element, $prefix = "")
+    /**
+     * @param Element $element
+     * @param string  $prefix
+     *
+     * @return string
+     * @throws \Twig\Error\LoaderError
+     * @throws \Twig\Error\RuntimeError
+     * @throws \Twig\Error\SyntaxError
+     */
+    protected function exportElement(Element $element, $prefix = '')
+    {
+        $fieldsAndImports = $this->getFieldsAndImports($element, $prefix);
+        $fields = $this->filterAndSortFields($fieldsAndImports['fields']);
+        $imports = $fieldsAndImports['imports'];
+        return $this->renderClassContent($element, $fields, $imports);
+    }
+    
+    /**
+     * @param Element $element
+     * @param         $prefix
+     *
+     * @return array
+     */
+    protected function getFieldsAndImports(Element $element, $prefix)
     {
         $fields = [];
         $imports = [];
@@ -112,12 +195,45 @@ class PythonModelExporter implements ExporterInterface
         
         $imports = array_filter($imports);
         
+        return ['fields' => $fields, 'imports' => $imports];
+    }
+    
+    /**
+     * @param $fields
+     *
+     * @return array
+     */
+    protected function filterAndSortFields($fields)
+    {
         // filter empty type fields
         $fields = array_filter($fields, function ($field) {
             return $field['type'] != null;
         });
         
-        $classContent = $this->twig->render('Exporter/python_model/class.py.twig', [
+        // sort fields by nullable last
+        usort($fields, function ($a, $b) {
+            if ($a['nullable'] == $b['nullable']) {
+                return 0;
+            }
+            return $a['nullable'] ? 1 : -1;
+        });
+        
+        return $fields;
+    }
+    
+    /**
+     * @param $element
+     * @param $fields
+     * @param $imports
+     *
+     * @return string
+     * @throws \Twig\Error\LoaderError
+     * @throws \Twig\Error\RuntimeError
+     * @throws \Twig\Error\SyntaxError
+     */
+    protected function renderClassContent($element, $fields, $imports)
+    {
+        $classContent = $this->twig->render($this->getClassTemplatePath(), [
             'class_name' => $this->getClassName($element),
             'fields'     => $fields,
             'imports'    => $imports,
@@ -126,7 +242,17 @@ class PythonModelExporter implements ExporterInterface
         return $classContent;
     }
     
-    private function getObjectImport(Element $element, $prefix = "")
+    protected function getClassTemplatePath()
+    {
+        return 'Exporter/python_model/class.py.twig';
+    }
+    
+    /**
+     * @param Element $element
+     *
+     * @return string
+     */
+    protected function getObjectImport(Element $element, $prefix = "")
     {
         $allowedTypes = [
             ElementTypeEnum::TYPE_OBJECT,
@@ -154,7 +280,12 @@ class PythonModelExporter implements ExporterInterface
         return sprintf("from %s%s import %s", $prefixPart, $path, $className);
     }
     
-    private function getObjectPath(Element $element, $prefix = "")
+    /**
+     * @param Element $element
+     *
+     * @return string
+     */
+    protected function getObjectPath(Element $element, $prefix = "")
     {
         $path = [];
         $path[] = $element->getName();
@@ -176,12 +307,22 @@ class PythonModelExporter implements ExporterInterface
         return $path;
     }
     
-    private function getClassName(Element $element)
+    /**
+     * @param Element $element
+     *
+     * @return string
+     */
+    protected function getClassName(Element $element)
     {
         return InflectorFactory::create()->build()->classify($element->getName());
     }
     
-    private function getType(Element $element)
+    /**
+     * @param Element $element
+     *
+     * @return string
+     */
+    protected function getType(Element $element)
     {
         switch ($element->getType()) {
             case ElementTypeEnum::TYPE_OBJECT:
@@ -192,7 +333,7 @@ class PythonModelExporter implements ExporterInterface
                 if (!$child) {
                     $type = null;
                 } else {
-                    $type = sprintf('List[%s]', $this->getType($child));
+                    $type = sprintf(PythonTypeEnum::TYPE_LIST . '[%s]', $this->getType($child));
                 }
                 break;
             case ElementTypeEnum::TYPE_DICT:
@@ -200,28 +341,28 @@ class PythonModelExporter implements ExporterInterface
                 if (!$child) {
                     $type = null;
                 } else {
-                    $type = sprintf('Dict[str, %s]', $this->getType($child));
+                    $type = sprintf(PythonTypeEnum::TYPE_DICT . '[%s, %s]', PythonTypeEnum::TYPE_STRING, $this->getType($child));
                 }
                 break;
             case ElementTypeEnum::TYPE_STRING:
-                $type = 'str';
+                $type = PythonTypeEnum::TYPE_STRING;
                 break;
             case ElementTypeEnum::TYPE_INTEGER:
-                $type = 'int';
+                $type = PythonTypeEnum::TYPE_INTEGER;
                 break;
             case ElementTypeEnum::TYPE_FLOAT:
-                $type = 'float';
+                $type = PythonTypeEnum::TYPE_FLOAT;
                 break;
             case ElementTypeEnum::TYPE_BOOLEAN:
-                $type = 'bool';
+                $type = PythonTypeEnum::TYPE_BOOLEAN;
                 break;
             default:
-                $type = null;
+                $type = PythonTypeEnum::TYPE_ANY;
                 break;
         }
         
         if ($element->isNullable()) {
-            $type = sprintf('Optional[%s]', $type);
+            $type = sprintf(PythonTypeEnum::TYPE_OPTIONAL . '[%s]', $type);
         }
         
         return $type;
